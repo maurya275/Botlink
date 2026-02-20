@@ -3,8 +3,8 @@
 
 import re
 
-API_ID = "12345678" # Your Telegram API ID
-API_HASH = "12345678abcd" # Your Telegram API Hash
+API_ID = "30861624" # Your Telegram API ID
+API_HASH = "4bac8ea697e16d2323ad170a04aa552a" # Your Telegram API Hash
 BOT_TOKEN = "8383893227:AAGoFsjWvYblmQJJnbQuA0eBJIBORYyR6fI" # Your Bot Token
 
 # MongoDB connection URI
