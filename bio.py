@@ -1,55 +1,37 @@
+import re
 from pyrogram import Client, filters
-from pyrogram.types import Message
 from config import API_ID, API_HASH, BOT_TOKEN
 
 app = Client(
-    "BotTelegramLinkProtector",
+    "LinkDeleteBot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# ===== TELEGRAM LINK CHECK FUNCTION ===== #
-
-def has_telegram_link(message: Message) -> bool:
-    text = message.text or message.caption or ""
-
-    # 1️⃣ Plain text check
-    if "t.me" in text or "telegram.me" in text:
-        return True
-
-    # 2️⃣ Hidden markdown/entity link check
-    if message.entities:
-        for entity in message.entities:
-            if entity.type in ["url", "text_link"]:
-                return True
-
-    # 3️⃣ Button URL check
-    if message.reply_markup:
-        for row in message.reply_markup.inline_keyboard:
-            for button in row:
-                if button.url and ("t.me" in button.url or "telegram.me" in button.url):
-                    return True
-
-    return False
-
-
-# ===== MAIN DELETE SYSTEM ===== #
+# Telegram link pattern
+LINK_PATTERN = re.compile(
+    r"(t\.me/\S+|https?://t\.me/\S+|telegram\.me/\S+)",
+    re.IGNORECASE
+)
 
 @app.on_message(filters.group)
 @app.on_edited_message(filters.group)
-async def delete_bot_links(client: Client, message: Message):
+async def delete_links(client, message):
 
-    # Sirf bot message check karega
-    if message.from_user and message.from_user.is_bot:
+    try:
+        text = message.text or message.caption or ""
 
-        if has_telegram_link(message):
+        # Sirf bot ke message check kare
+        if message.from_user and message.from_user.is_bot:
 
-            try:
+            if LINK_PATTERN.search(text):
                 await message.delete()
-                print("Bot Telegram link message deleted")
-            except Exception as e:
-                print("Delete failed:", e)
+                print("Deleted bot Telegram link")
+
+    except Exception as e:
+        print("Error:", e)
 
 
+print("Bot Started Successfully...")
 app.run()
