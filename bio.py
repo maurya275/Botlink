@@ -1,57 +1,55 @@
-import re
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message
 from config import API_ID, API_HASH, BOT_TOKEN
 
 app = Client(
-    "UltraLinkProtector",
+    "BotTelegramLinkProtector",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# ========= STRONG LINK DETECTOR ========= #
+# ===== TELEGRAM LINK CHECK FUNCTION ===== #
 
-LINK_PATTERN = re.compile(
-    r"(https?://\S+|www\.\S+|t\.me/\S+|telegram\.me/\S+)",
-    re.IGNORECASE
-)
+def has_telegram_link(message: Message) -> bool:
+    text = message.text or message.caption or ""
 
-# ================= MAIN DELETE SYSTEM ================= #
+    # 1️⃣ Plain text check
+    if "t.me" in text or "telegram.me" in text:
+        return True
+
+    # 2️⃣ Hidden markdown/entity link check
+    if message.entities:
+        for entity in message.entities:
+            if entity.type in ["url", "text_link"]:
+                return True
+
+    # 3️⃣ Button URL check
+    if message.reply_markup:
+        for row in message.reply_markup.inline_keyboard:
+            for button in row:
+                if button.url and ("t.me" in button.url or "telegram.me" in button.url):
+                    return True
+
+    return False
+
+
+# ===== MAIN DELETE SYSTEM ===== #
 
 @app.on_message(filters.group)
 @app.on_edited_message(filters.group)
-async def delete_links(client, message):
+async def delete_bot_links(client: Client, message: Message):
 
-    text = message.text or message.caption or ""
+    # Sirf bot message check karega
+    if message.from_user and message.from_user.is_bot:
 
-    has_link = LINK_PATTERN.search(text)
+        if has_telegram_link(message):
 
-    is_forward = (
-        message.forward_from or
-        message.forward_from_chat
-    )
+            try:
+                await message.delete()
+                print("Bot Telegram link message deleted")
+            except Exception as e:
+                print("Delete failed:", e)
 
-    # Detect sender_chat (anonymous admin / channel / bot)
-    is_sender_chat = message.sender_chat is not None
-
-    if has_link or is_forward:
-
-        try:
-            await message.delete()
-        except Exception as e:
-            print("Delete error:", e)
-            return
-
-        bot = await client.get_me()
-        add_link = f"https://t.me/{bot.username}?startgroup=true"
-
-        await client.send_message(
-            message.chat.id,
-            "⚠️ Link Deleted!\n\n🔐 Group Protected.",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("➕ Add Me", url=add_link)]]
-            )
-        )
 
 app.run()
