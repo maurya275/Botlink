@@ -1,119 +1,115 @@
-"""
-Author: Bisnu Ray
-User: https://t.me/BisnuRay
-Channel: https://t.me/itsSmartDev
-Upgraded With Link Filter System
-"""
-
-from pyrogram import Client, filters, errors
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatPermissions
-
-from helper.utils import (
-    is_admin,
-    get_config, update_config,
-    increment_warning, reset_warnings,
-    is_whitelisted, add_whitelist, remove_whitelist, get_whitelist
-)
-
-from config import (
-    API_ID,
-    API_HASH,
-    BOT_TOKEN,
-    URL_PATTERN
-)
-
-from link_filter import setup_link_filter  # NEW IMPORT
-
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from motor.motor_asyncio import AsyncIOMotorClient
+from config import *
+from link_filter import check_and_delete_link
+import asyncio
 
 app = Client(
-    "biolink_protector_bot",
+    "BioLinkRemover",
     api_id=API_ID,
     api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
+    bot_token=BOT_TOKEN
 )
 
-# Activate link filter system
-setup_link_filter(app)
+mongo = AsyncIOMotorClient(MONGO_URI)
+db = mongo.biolinkbot
+warn_db = db.warns
 
+
+# ================= COMMANDS =================
 
 @app.on_message(filters.command("start"))
-async def start_handler(client: Client, message):
-    bot = await client.get_me()
-    add_url = f"https://t.me/{bot.username}?startgroup=true"
-
-    text = (
-        "**✨ Welcome to BioLink Protector Bot! ✨**\n\n"
-        "🛡️ I protect groups from:\n"
-        "• Users with links in bio\n"
-        "• Telegram links in messages\n\n"
-        "Use /help to see commands."
+async def start_cmd(_, message: Message):
+    await message.reply_text(
+        "🔐 Bot Link Remover Active\n\n"
+        "Links auto delete + Bio detect enabled.\n"
+        "Use /help for help."
     )
 
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("➕ Add Me to Your Group", url=add_url)],
-        [InlineKeyboardButton("🗑️ Close", callback_data="close")]
-    ])
 
-    await message.reply_text(text, reply_markup=kb)
+@app.on_message(filters.command("help"))
+async def help_cmd(_, message: Message):
+    await message.reply_text(
+        "📌 Commands List:\n\n"
+        "/start - Start bot\n"
+        "/help - Help menu\n"
+        "/free - Bot status\n"
+        "/biocheck - Reply user to check bio"
+    )
 
 
-@app.on_message(filters.group)
-async def check_bio(client: Client, message):
+@app.on_message(filters.command("free"))
+async def free_cmd(_, message: Message):
+    await message.reply_text(
+        "🤖 Bot is running properly.\n"
+        "Auto link delete enabled."
+    )
 
-    if not message.from_user:
-        return
 
-    chat_id = message.chat.id
-    user_id = message.from_user.id
+@app.on_message(filters.command("biocheck"))
+async def bio_check(_, message: Message):
+    if not message.reply_to_message:
+        return await message.reply_text("Reply to a user.")
 
-    if await is_admin(client, chat_id, user_id):
-        return
-
-    if await is_whitelisted(chat_id, user_id):
-        return
-
-    user = await client.get_chat(user_id)
-    bio = user.bio or ""
-
-    full_name = f"{user.first_name}{(' ' + user.last_name) if user.last_name else ''}"
-    mention = f"[{full_name}](tg://user?id={user_id})"
+    user = message.reply_to_message.from_user
+    bio = user.bio if user.bio else ""
 
     if URL_PATTERN.search(bio):
+        await message.reply_text("⚠️ Link found in bio.")
+    else:
+        await message.reply_text("✅ No link in bio.")
 
-        try:
-            await message.delete()
-        except errors.MessageDeleteForbidden:
-            return await message.reply_text("Please give me delete permission.")
 
-        mode, limit, penalty = await get_config(chat_id)
+# ================ WARN SYSTEM =================
 
-        count = await increment_warning(chat_id, user_id)
+async def add_warn(chat_id, user_id):
+    data = await warn_db.find_one({"chat_id": chat_id, "user_id": user_id})
 
-        warning_text = (
-            "**🚨 Warning Issued** 🚨\n\n"
-            f"👤 {mention}\n"
-            "❌ URL found in bio\n"
-            f"⚠️ Warning: {count}/{limit}"
+    if data:
+        count = data["count"] + 1
+        await warn_db.update_one(
+            {"chat_id": chat_id, "user_id": user_id},
+            {"$set": {"count": count}}
+        )
+    else:
+        count = 1
+        await warn_db.insert_one(
+            {"chat_id": chat_id, "user_id": user_id, "count": count}
         )
 
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("❌ Cancel Warning", callback_data=f"cancel_warn_{user_id}"),
-             InlineKeyboardButton("✅ Whitelist", callback_data=f"whitelist_{user_id}")]
-        ])
+    return count
 
-        sent = await message.reply_text(warning_text, reply_markup=keyboard)
 
-        if count >= limit:
+# ================ LINK HANDLER =================
+
+@app.on_message(filters.group)
+async def link_handler(_, message: Message):
+    if not message.text and not message.caption:
+        return
+
+    await check_and_delete_link(app, message, add_warn)
+
+
+# ================ BIO AUTO CHECK =================
+
+@app.on_message(filters.new_chat_members)
+async def check_bio(_, message: Message):
+    for user in message.new_chat_members:
+        bio = user.bio if user.bio else ""
+        if URL_PATTERN.search(bio):
             try:
-                if penalty == "mute":
-                    await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
-                    await sent.edit_text(f"**{full_name} has been muted (Link In Bio).**")
-                else:
-                    await client.ban_chat_member(chat_id, user_id)
-                    await sent.edit_text(f"**{full_name} has been banned (Link In Bio).**")
-            except errors.ChatAdminRequired:
-                await sent.edit_text("I don't have permission to punish users.")
+                await app.restrict_chat_member(
+                    message.chat.id,
+                    user.id,
+                    permissions={}
+                )
+                await message.reply_text(
+                    f"⚠️ {user.mention} muted for bio link."
+                )
+            except:
+                pass
 
 
-if __name__ == "__main__":
-    app.run()
+print("Bot Started Successfully ✅")
+app.run()
