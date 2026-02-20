@@ -1,10 +1,10 @@
 import re
 
-API_ID = "PASTE_NEW_API_ID"
-API_HASH = "PASTE_NEW_API_HASH"
-BOT_TOKEN = "PASTE_NEW_BOT_TOKEN"
+API_ID = "30861624"
+API_HASH = "4bac8ea697e16d2323ad170a04aa552a"
+BOT_TOKEN = "8383893227:AAHWCKH5RJuY7ZENpsmZCzrPIIYJol-hJIY"
 
-MONGO_URI = "mongodb+srv://=Cluster0"
+MONGO_URI = "mongodb+srv://Shizukamusicsss:Shizukamusicsss@cluster0.zupd3uz.mongodb.net/?appName=Cluster0"
 
 DEFAULT_WARNING_LIMIT = 3
 DEFAULT_PUNISHMENT = "mute"
