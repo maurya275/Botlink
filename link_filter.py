@@ -1,51 +1,59 @@
-from config import URL_PATTERN, DEFAULT_WARNING_LIMIT, DEFAULT_PUNISHMENT
-from pyrogram.errors import ChatAdminRequired
+from pyrogram import filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import MessageDeleteForbidden
+
+from config import TELEGRAM_LINK_PATTERN, PROMOTION_TEXT, BOT_USERNAME
 
 
-async def check_and_delete_link(app, message, add_warn):
+def setup_link_filter(app):
 
-    text = message.text or message.caption
+    @app.on_message(filters.group & filters.text)
+    async def delete_links(client, message):
 
-    if not text:
-        return
+        if not message.text:
+            return
 
-    # Detect link
-    if not URL_PATTERN.search(text):
-        return
+        if TELEGRAM_LINK_PATTERN.search(message.text):
 
-    try:
-        await message.delete()
-    except:
-        return
+            try:
+                await message.delete()
+            except MessageDeleteForbidden:
+                return
 
-    user = message.from_user
+            add_link = f"https://t.me/{BOT_USERNAME}?startgroup=true"
 
-    # If anonymous admin or no user
-    if not user:
-        return
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("➕ Add This Bot To Your Group", url=add_link)]
+            ])
 
-    warn_count = await add_warn(message.chat.id, user.id)
+            await client.send_message(
+                message.chat.id,
+                PROMOTION_TEXT,
+                reply_markup=keyboard
+            )
 
-    if warn_count >= DEFAULT_WARNING_LIMIT:
-        try:
-            if DEFAULT_PUNISHMENT == "mute":
-                await app.restrict_chat_member(
-                    message.chat.id,
-                    user.id,
-                    permissions={}
-                )
-            elif DEFAULT_PUNISHMENT == "ban":
-                await app.ban_chat_member(
-                    message.chat.id,
-                    user.id
-                )
-        except ChatAdminRequired:
-            pass
 
-    try:
-        await message.chat.send_message(
-            f"⚠️ {user.mention} link not allowed.\n"
-            f"Warn: {warn_count}/{DEFAULT_WARNING_LIMIT}"
-        )
-    except:
-        pass
+    @app.on_edited_message(filters.group & filters.text)
+    async def delete_edited_links(client, message):
+
+        if not message.text:
+            return
+
+        if TELEGRAM_LINK_PATTERN.search(message.text):
+
+            try:
+                await message.delete()
+            except MessageDeleteForbidden:
+                return
+
+            add_link = f"https://t.me/{BOT_USERNAME}?startgroup=true"
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("➕ Add This Bot To Your Group", url=add_link)]
+            ])
+
+            await client.send_message(
+                message.chat.id,
+                PROMOTION_TEXT,
+                reply_markup=keyboard
+            )
