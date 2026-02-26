@@ -24,12 +24,12 @@ from config import (
     URL_PATTERN
 )
 
-# ================= EXTRA SETTINGS ================= #
+# ================= SETTINGS ================= #
 
 ABUSE_WORDS = [
     "madarchod", "bhosdike", "chutiya", "mc", "bc",
-    "gandu", "lund", "randi", "harami", "fuck",
-    "shit", "bitch"
+    "gandu", "lund", "randi", "harami",
+    "fuck", "shit", "bitch"
 ]
 
 LINK_REGEX = re.compile(
@@ -37,7 +37,7 @@ LINK_REGEX = re.compile(
     re.IGNORECASE
 )
 
-# ================================================== #
+# ============================================ #
 
 app = Client(
     "biolink_protector_bot",
@@ -46,7 +46,7 @@ app = Client(
     bot_token=BOT_TOKEN,
 )
 
-# ================= COMMON BUTTON ================= #
+# ============== COMMON BUTTON ============== #
 
 async def get_add_button(client):
     bot = await client.get_me()
@@ -54,26 +54,25 @@ async def get_add_button(client):
         [InlineKeyboardButton("➕ Add Me In Your Group", url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
 
-# ================================================= #
-
-# ================= NEW FEATURES ================= #
+# ============================================ #
+# ============ EXTRA PROTECTION ============== #
 
 @app.on_message(filters.group & ~filters.service)
 async def extra_protection(client: Client, message):
 
-    chat_id = message.chat.id
-    user_id = message.from_user.id if message.from_user else None
-
-    if not user_id:
+    if not message.from_user:
         return
 
-    # Skip whitelisted users
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    # Skip whitelisted
     if await is_whitelisted(chat_id, user_id):
         return
 
     text = message.text or message.caption or ""
 
-    # 1️⃣ LINK DETECTION
+    # 1️⃣ LINK DELETE
     if LINK_REGEX.search(text):
         try:
             await message.delete()
@@ -88,7 +87,7 @@ async def extra_protection(client: Client, message):
         )
         return
 
-    # 2️⃣ FORWARD MESSAGE DELETE
+    # 2️⃣ FORWARD DELETE
     if message.forward_date:
         try:
             await message.delete()
@@ -120,7 +119,7 @@ async def extra_protection(client: Client, message):
             )
             return
 
-    # 4️⃣ AUTO MEDIA DELETE (20 sec)
+    # 4️⃣ AUTO MEDIA DELETE (20 sec silent)
     if message.media:
         await asyncio.sleep(20)
         try:
@@ -128,17 +127,17 @@ async def extra_protection(client: Client, message):
         except:
             pass
 
+# ============================================ #
+# ========== EDITED MESSAGE CHECK ============ #
 
-# EDITED MESSAGE CHECK
-
-@app.on_message(filters.group & filters.edited)
+@app.on_edited_message(filters.group)
 async def edited_message_protection(client: Client, message):
 
-    chat_id = message.chat.id
-    user_id = message.from_user.id if message.from_user else None
-
-    if not user_id:
+    if not message.from_user:
         return
+
+    chat_id = message.chat.id
+    user_id = message.from_user.id
 
     if await is_whitelisted(chat_id, user_id):
         return
@@ -158,20 +157,25 @@ async def edited_message_protection(client: Client, message):
             reply_markup=kb
         )
 
-# ================================================= #
-
-# ================= ORIGINAL BIO SYSTEM ================= #
-# (UNCHANGED — EXACT SAME LOGIC)
+# ============================================ #
+# ============ ORIGINAL BIO SYSTEM =========== #
 
 @app.on_message(filters.group)
 async def check_bio(client: Client, message):
+
+    if not message.from_user:
+        return
+
     chat_id = message.chat.id
     user_id = message.from_user.id
-    if await is_admin(client, chat_id, user_id) or await is_whitelisted(chat_id, chat_id):
+
+    # ✅ FIXED BUG HERE
+    if await is_admin(client, chat_id, user_id) or await is_whitelisted(chat_id, user_id):
         return
 
     user = await client.get_chat(user_id)
     bio = user.bio or ""
+
     full_name = f"{user.first_name}{(' ' + user.last_name) if user.last_name else ''}"
     mention = f"[{full_name}](tg://user?id={user_id})"
 
@@ -182,7 +186,6 @@ async def check_bio(client: Client, message):
             return
 
         mode, limit, penalty = await get_config(chat_id)
-
         count = await increment_warning(chat_id, user_id)
 
         await message.reply_text(
@@ -192,7 +195,7 @@ async def check_bio(client: Client, message):
     else:
         await reset_warnings(chat_id, user_id)
 
-# ================================================= #
+# ============================================ #
 
 if __name__ == "__main__":
     app.run()
