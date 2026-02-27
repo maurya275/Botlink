@@ -23,7 +23,6 @@ ABUSE_WORDS = [
     "gandu","randi","harami","fuck","shit","bitch"
 ]
 
-# Only real links (username allowed)
 LINK_REGEX = re.compile(
     r"(https?://|www\.|t\.me/|telegram\.me/)",
     re.IGNORECASE
@@ -31,20 +30,10 @@ LINK_REGEX = re.compile(
 
 MEDIA_DELETE_TIME = 50
 
-warn_db = {}
-bio_free_db = {}
-
 # ================= HELPERS ================= #
 
 def is_admin(member):
     return member.status in ["administrator", "creator"]
-
-async def add_group_button():
-    bot = await app.get_me()
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
-                              url=f"https://t.me/{bot.username}?startgroup=true")]
-    ])
 
 async def start_buttons():
     bot = await app.get_me()
@@ -57,24 +46,29 @@ async def start_buttons():
         ]
     ])
 
+async def add_button():
+    bot = await app.get_me()
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
+                              url=f"https://t.me/{bot.username}?startgroup=true")]
+    ])
+
 # ================= START ================= #
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
 
     text = (
-        "╔══════════════════════════════╗\n"
-        "║      ✨ 𝐀𝐃𝐕𝐀𝐍𝐂𝐄𝐃 𝐒𝐄𝐂𝐔𝐑𝐈𝐓𝐘 ✨      ║\n"
-        "╠══════════════════════════════╣\n"
-        "║ 🛡  Bio Link Protection       ║\n"
-        "║ 🔗  Anti Link System          ║\n"
-        "║ 🚫  Abuse Filter              ║\n"
-        "║ 📤  Forward Control           ║\n"
-        "║ ✏  Edit Protection            ║\n"
-        "║ 🗑  Media Auto Cleanup         ║\n"
-        "╠══════════════════════════════╣\n"
-        "║ ⚡ Fast • Stable • Premium     ║\n"
-        "╚══════════════════════════════╝"
+        "✨ 𝗔𝗗𝗩𝗔𝗡𝗖𝗘𝗗 𝗚𝗥𝗢𝗨𝗣 𝗦𝗘𝗖𝗨𝗥𝗜𝗧𝗬 ✨\n\n"
+
+        "🛡 𝗕𝗶𝗼 𝗟𝗶𝗻𝗸 𝗣𝗿𝗼𝘁𝗲𝗰𝘁𝗶𝗼𝗻\n"
+        "🔗 𝗔𝗻𝘁𝗶 𝗟𝗶𝗻𝗸 𝗦𝘆𝘀𝘁𝗲𝗺\n"
+        "🚫 𝗔𝗻𝘁𝗶 𝗔𝗯𝘂𝘀𝗲 𝗙𝗶𝗹𝘁𝗲𝗿\n"
+        "📤 𝗙𝗼𝗿𝘄𝗮𝗿𝗱 𝗖𝗼𝗻𝘁𝗿𝗼𝗹\n"
+        "✏ 𝗘𝗱𝗶𝘁 𝗣𝗿𝗼𝘁𝗲𝗰𝘁𝗶𝗼𝗻\n"
+        "🗑 𝗠𝗲𝗱𝗶𝗮 𝗔𝘂𝘁𝗼 𝗖𝗹𝗲𝗮𝗻\n\n"
+
+        "⚡ 𝗣𝗿𝗲𝗺𝗶𝘂𝗺 • 𝗙𝗮𝘀𝘁 • 𝗦𝘁𝗮𝗯𝗹𝗲"
     )
 
     await message.reply_text(text, reply_markup=await start_buttons())
@@ -93,7 +87,7 @@ async def security(_, message):
 
     member = await app.get_chat_member(chat_id, user_id)
 
-    # 🔥 ADMIN FULLY SAFE (bio ignored completely)
+    # ✅ ADMIN FULLY SAFE (bio ignored)
     if is_admin(member):
         return
 
@@ -106,43 +100,31 @@ async def security(_, message):
 
     if LINK_REGEX.search(bio):
         await message.delete()
-
         await message.reply_text(
-            "╔════════════════════════╗\n"
-            "║ 🚫  𝐁𝐢𝐨 𝐋𝐢𝐧𝐤 𝐃𝐞𝐭𝐞𝐜𝐭𝐞𝐝        ║\n"
-            "╠════════════════════════╣\n"
-            "║ 🔎 Remove link from bio ║\n"
-            "║ ⚠ Repeated = Auto Mute  ║\n"
-            "╚════════════════════════╝",
-            reply_markup=await add_group_button()
+            "🚫 𝗕𝗶𝗼 𝗟𝗶𝗻𝗸 𝗗𝗲𝘁𝗲𝗰𝘁𝗲𝗱\n"
+            "⚠ Please remove link from your bio.\n"
+            "🔒 Continued violation may result in mute.",
+            reply_markup=await add_button()
         )
         return
 
     # ===== LINK DELETE =====
     if LINK_REGEX.search(text):
         await message.delete()
-
         await message.reply_text(
-            "╔════════════════════════╗\n"
-            "║ 🚫  𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝              ║\n"
-            "╠════════════════════════╣\n"
-            "║ 🔐 Links not allowed    ║\n"
-            "╚════════════════════════╝",
-            reply_markup=await add_group_button()
+            "🚫 𝗟𝗶𝗻𝗸 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+            "🔐 Sharing links is not allowed here.",
+            reply_markup=await add_button()
         )
         return
 
     # ===== FORWARD DELETE =====
     if message.forward_date:
         await message.delete()
-
         await message.reply_text(
-            "╔════════════════════════╗\n"
-            "║ 📤  𝐅𝐨𝐫𝐰𝐚𝐫𝐝 𝐑𝐞𝐦𝐨𝐯𝐞𝐝          ║\n"
-            "╠════════════════════════╣\n"
-            "║ 🔒 Forwarding blocked   ║\n"
-            "╚════════════════════════╝",
-            reply_markup=await add_group_button()
+            "📤 𝗙𝗼𝗿𝘄𝗮𝗿𝗱𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+            "🔒 Forwarding is restricted in this group.",
+            reply_markup=await add_button()
         )
         return
 
@@ -150,18 +132,14 @@ async def security(_, message):
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
-
             await message.reply_text(
-                "╔════════════════════════╗\n"
-                "║ ⚠  𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠.        ║\n"
-                "╠════════════════════════╣\n"
-                "║ 💬 Maintain Respect     ║\n"
-                "╚════════════════════════╝",
-                reply_markup=await add_group_button()
+                "⚠ 𝗜𝗻𝗮𝗽𝗽𝗿𝗼𝗽𝗿𝗶𝗮𝘁𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+                "💬 Please maintain respectful conversation.",
+                reply_markup=await add_button()
             )
             return
 
-    # ===== MEDIA SILENT =====
+    # ===== MEDIA AUTO DELETE =====
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
         try:
@@ -179,23 +157,35 @@ async def edited(_, message):
 
     member = await app.get_chat_member(message.chat.id, message.from_user.id)
 
-    # ADMIN SAFE
+    # ✅ ADMIN SAFE
     if is_admin(member):
         return
 
     text = message.text or message.caption or ""
 
+    # Edited Link
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
-            "╔════════════════════════╗\n"
-            "║ ✏  𝐄𝐝𝐢𝐭𝐞𝐝 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝      ║\n"
-            "╚════════════════════════╝",
-            reply_markup=await add_group_button()
+            "✏ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗟𝗶𝗻𝗸 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+            "🔐 Editing messages to add links is not allowed.",
+            reply_markup=await add_button()
         )
+        return
+
+    # Edited Abuse
+    for word in ABUSE_WORDS:
+        if word in text.lower():
+            await message.delete()
+            await message.reply_text(
+                "✏ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗜𝗻𝗮𝗽𝗽𝗿𝗼𝗽𝗿𝗶𝗮𝘁𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+                "💬 Respect group guidelines.",
+                reply_markup=await add_button()
+            )
+            return
 
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Running Premium Final Version ✅")
+    print("Bot Running Final Premium Stable Version ✅")
     app.run()
