@@ -1,7 +1,6 @@
 """
 Author: Bisnu Ray
-User: https://t.me/BisnuRay
-Channel: https://t.me/itsSmartDev
+Modified: Stable Unified Security Version
 """
 
 import asyncio
@@ -17,14 +16,10 @@ from helper.utils import (
     is_whitelisted, add_whitelist, remove_whitelist, get_whitelist
 )
 
-from config import (
-    API_ID,
-    API_HASH,
-    BOT_TOKEN,
-    URL_PATTERN
-)
+from config import API_ID, API_HASH, BOT_TOKEN, URL_PATTERN
 
-# ================= EXTRA SECURITY SETTINGS ================= #
+
+# ================= EXTRA SETTINGS ================= #
 
 ABUSE_WORDS = [
     "madarchod","bhosdike","chutiya","mc","bc",
@@ -38,6 +33,7 @@ LINK_REGEX = re.compile(
 
 MEDIA_DELETE_TIME = 50
 
+
 # ================= APP ================= #
 
 app = Client(
@@ -47,6 +43,7 @@ app = Client(
     bot_token=BOT_TOKEN,
 )
 
+
 # ================= START ================= #
 
 @app.on_message(filters.command("start"))
@@ -55,46 +52,41 @@ async def start_handler(client, message):
     add_url = f"https://t.me/{bot.username}?startgroup=true"
 
     text = (
-        "**✨ Welcome to BioLink Protector Bot! ✨**\n\n"
-        "🛡 Bio Protection + Advanced Group Security Enabled.\n\n"
-        "Use /help to see all commands."
+        "**✨ BioLink Protector + Advanced Security Bot ✨**\n\n"
+        "Bio link detection + Link filter + Abuse filter + Media control enabled.\n\n"
+        "Use /help for commands."
     )
 
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("➕ Add Me to Your Group", url=add_url)],
-        [InlineKeyboardButton("🗑️ Close", callback_data="close")]
+        [InlineKeyboardButton("➕ Add Me To Your Group", url=add_url)]
     ])
 
     await message.reply_text(text, reply_markup=kb)
+
 
 # ================= HELP ================= #
 
 @app.on_message(filters.command("help"))
 async def help_handler(client, message):
-    help_text = (
-        "**🛠 Commands:**\n\n"
-        "`/config` – set warn limit & punishment\n"
-        "`/free` – whitelist user\n"
-        "`/unfree` – remove whitelist\n"
-        "`/freelist` – list whitelist\n\n"
-        "Security Enabled:\n"
-        "• Bio link detector\n"
-        "• Link delete\n"
-        "• Abuse delete\n"
-        "• Edited check\n"
-        "• Forward delete\n"
-        "• Media auto delete (50 sec)"
+    await message.reply_text(
+        "**Commands:**\n\n"
+        "/config\n"
+        "/free\n"
+        "/unfree\n"
+        "/freelist\n\n"
+        "Security:\n"
+        "• Bio Link Warn + Mute\n"
+        "• Link Delete\n"
+        "• Abuse Delete\n"
+        "• Edited Check\n"
+        "• Forward Delete\n"
+        "• Media Auto Delete (50 sec)"
     )
-    await message.reply_text(help_text)
 
-# ================= CONFIG / FREE / CALLBACK ================= #
-# (Aapka original pura system yaha untouched rehne de)
-# IMPORTANT: Aapka original config, free, unfree,
-# freelist, callback_handler same rehne de.
-# Unko delete nahi karna.
-# Sirf niche unified security add kiya gaya hai.
 
-# ================= UNIFIED SECURITY ================= #
+# ==========================================================
+# ================= UNIFIED SECURITY =======================
+# ==========================================================
 
 @app.on_message(filters.group & ~filters.service)
 async def unified_security(client, message):
@@ -106,9 +98,9 @@ async def unified_security(client, message):
     user_id = message.from_user.id
     text = message.text or message.caption or ""
 
+    # Skip admin & whitelist
     if await is_admin(client, chat_id, user_id):
         return
-
     if await is_whitelisted(chat_id, user_id):
         return
 
@@ -118,7 +110,7 @@ async def unified_security(client, message):
                               url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
 
-    # ========= BIO LINK CHECK ========= #
+    # ================= BIO LINK DETECTOR ================= #
 
     try:
         user = await client.get_chat(user_id)
@@ -134,7 +126,6 @@ async def unified_security(client, message):
             pass
 
         mode, limit, penalty = await get_config(chat_id)
-
         count = await increment_warning(chat_id, user_id)
 
         warn_msg = await message.reply_text(
@@ -143,7 +134,6 @@ async def unified_security(client, message):
 
         if count >= limit:
             try:
-                # 🔥 ALWAYS MUTE (Ban disabled)
                 await client.restrict_chat_member(
                     chat_id,
                     user_id,
@@ -155,7 +145,8 @@ async def unified_security(client, message):
 
         return
 
-    # ========= LINK DELETE ========= #
+
+    # ================= MESSAGE LINK DELETE ================= #
 
     if LINK_REGEX.search(text):
         try:
@@ -163,13 +154,11 @@ async def unified_security(client, message):
         except:
             pass
 
-        await message.reply_text(
-            "🔗 Link Deleted!",
-            reply_markup=promo_kb
-        )
+        await message.reply_text("🔗 Link Deleted!", reply_markup=promo_kb)
         return
 
-    # ========= FORWARD DELETE ========= #
+
+    # ================= FORWARD DELETE ================= #
 
     if message.forward_date:
         try:
@@ -177,13 +166,11 @@ async def unified_security(client, message):
         except:
             pass
 
-        await message.reply_text(
-            "📤 Forward Deleted!",
-            reply_markup=promo_kb
-        )
+        await message.reply_text("📤 Forward Deleted!", reply_markup=promo_kb)
         return
 
-    # ========= ABUSE DELETE ========= #
+
+    # ================= ABUSE DELETE ================= #
 
     lowered = text.lower()
     for word in ABUSE_WORDS:
@@ -193,13 +180,11 @@ async def unified_security(client, message):
             except:
                 pass
 
-            await message.reply_text(
-                "⚠️ Abuse Deleted!",
-                reply_markup=promo_kb
-            )
+            await message.reply_text("⚠️ Abuse Deleted!", reply_markup=promo_kb)
             return
 
-    # ========= MEDIA SILENT DELETE ========= #
+
+    # ================= MEDIA AUTO DELETE ================= #
 
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
@@ -208,7 +193,8 @@ async def unified_security(client, message):
         except:
             pass
 
-# ================= EDITED MESSAGE SECURITY ================= #
+
+# ================= EDITED MESSAGE CHECK ================= #
 
 @app.on_edited_message(filters.group)
 async def edited_security(client, message):
@@ -234,8 +220,9 @@ async def edited_security(client, message):
                 pass
         return
 
+
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Started Successfully ✅")
+    print("Bot Running Stable Version ✅")
     app.run()
