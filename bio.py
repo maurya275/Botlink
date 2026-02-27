@@ -31,6 +31,9 @@ LINK_REGEX = re.compile(
 
 MEDIA_DELETE_TIME = 50
 
+# ===== WARNING STORAGE =====
+bio_warnings = {}
+
 # ================= HELPERS ================= #
 
 def is_admin(member):
@@ -63,23 +66,12 @@ async def start(_, message):
         "━━━━━━━━━━━━━━━━━━\n"
         "✦ 𝐁𝐎𝐓 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐑 ✦\n"
         "━━━━━━━━━━━━━━━━━━\n\n"
-
         "🛡 Elite Group Security System\n\n"
-
         "🚫 Auto Link Protection\n"
-        "✏ Edit-Time Detection\n"
-        "📤 Forward Control\n"
+        "🔎 Bio Link Monitoring\n"
         "🔞 Abuse Filter\n"
-        "🔎 Bio Link Scanner\n"
-        "👑 Admin Safe Mode\n"
-        "⚡ Real-Time Monitoring\n\n"
-
-        "━━━━━━━━━━━━━━━━━━\n"
-        "💎 Premium • Fast • Stable\n"
-        "━━━━━━━━━━━━━━━━━━\n\n"
-
-        "🚀 Add Me To Your Group\n"
-        "For Smart Automatic Protection"
+        "⚡ Real-Time Protection\n\n"
+        "💎 Premium • Fast • Stable"
     )
 
     await message.reply_text(text, reply_markup=await start_buttons())
@@ -98,11 +90,11 @@ async def security(_, message):
 
     member = await app.get_chat_member(chat_id, user_id)
 
-    # ✅ ADMIN FULLY SAFE (bio ignored)
+    # ✅ ADMIN SAFE
     if is_admin(member):
         return
 
-    # ===== BIO CHECK =====
+    # ===== BIO CHECK WITH 3 WARNING SYSTEM =====
     try:
         user = await app.get_chat(user_id)
         bio = user.bio or ""
@@ -111,31 +103,40 @@ async def security(_, message):
 
     if LINK_REGEX.search(bio):
 
-        await message.delete()
+        count = bio_warnings.get(user_id, 0) + 1
+        bio_warnings[user_id] = count
 
-        await message.reply_text(
-            "🚫 𝗕𝗜𝗢 𝗟𝗜𝗡𝗞 𝗗𝗘𝗧𝗘𝗖𝗧𝗘𝗗\n\n"
-            "⚠ Your profile contains a restricted link.\n"
-            "🔒 You have been muted for 60 minutes.\n\n"
-            "Please remove the link from your bio.",
-            reply_markup=await add_button()
-        )
+        if count < 3:
+            await message.reply_text(
+                f"⚠ 𝗕𝗜𝗢 𝗟𝗜𝗡𝗞 𝗪𝗔𝗥𝗡𝗜𝗡𝗚 ({count}/3)\n\n"
+                "🚫 Your profile contains a restricted link.\n"
+                "Please remove it to avoid mute.",
+                reply_markup=await add_button()
+            )
+            return
 
+        # 3rd time → mute
         try:
             await app.restrict_chat_member(
                 chat_id,
                 user_id,
-                ChatPermissions(
-                    can_send_messages=False
-                ),
-                until_date=int(time.time()) + 3600
+                ChatPermissions(can_send_messages=False),
+                until_date=int(time.time()) + 1800
             )
         except:
             pass
 
+        await message.reply_text(
+            "🔒 𝗨𝗦𝗘𝗥 𝗠𝗨𝗧𝗘𝗗\n\n"
+            "You ignored 3 warnings.\n"
+            "⏳ Muted for 30 minutes.",
+            reply_markup=await add_button()
+        )
+
+        bio_warnings[user_id] = 0
         return
 
-    # ===== LINK DELETE =====
+    # ===== NORMAL LINK DELETE =====
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
@@ -174,42 +175,8 @@ async def security(_, message):
         except:
             pass
 
-# ================= EDIT CHECK ================= #
-
-@app.on_edited_message(filters.group)
-async def edited(_, message):
-
-    if not message.from_user:
-        return
-
-    member = await app.get_chat_member(message.chat.id, message.from_user.id)
-
-    if is_admin(member):
-        return
-
-    text = message.text or message.caption or ""
-
-    if LINK_REGEX.search(text):
-        await message.delete()
-        await message.reply_text(
-            "✏ Edited Link Removed\n"
-            "🔐 Editing to add links is not allowed.",
-            reply_markup=await add_button()
-        )
-        return
-
-    for word in ABUSE_WORDS:
-        if word in text.lower():
-            await message.delete()
-            await message.reply_text(
-                "✏ Edited Inappropriate Language Removed\n"
-                "💬 Respect group guidelines.",
-                reply_markup=await add_button()
-            )
-            return
-
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Running Final Premium Stable Version ✅")
+    print("Bot Running Final Version ✅")
     app.run()
