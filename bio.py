@@ -24,12 +24,21 @@ from config import (
     URL_PATTERN
 )
 
-# ================= SETTINGS ================= #
+# ================== SETTINGS ================== #
 
+# 👉 YAHAN GALI WORDS ADD KARO
 ABUSE_WORDS = [
-    "madarchod", "bhosdike", "chutiya", "mc", "bc",
-    "gandu", "lund", "randi", "harami",
-    "fuck", "shit", "bitch"
+    "madarchod",
+    "bhosdike",
+    "chutiya",
+    "mc",
+    "bc",
+    "gandu",
+    "randi",
+    "harami",
+    "fuck",
+    "shit",
+    "bitch"
 ]
 
 LINK_REGEX = re.compile(
@@ -37,7 +46,7 @@ LINK_REGEX = re.compile(
     re.IGNORECASE
 )
 
-# ============================================ #
+# ============================================== #
 
 app = Client(
     "biolink_protector_bot",
@@ -46,7 +55,7 @@ app = Client(
     bot_token=BOT_TOKEN,
 )
 
-# ============== COMMON BUTTON ============== #
+# =============== COMMON BUTTON =============== #
 
 async def get_add_button(client):
     bot = await client.get_me()
@@ -54,25 +63,23 @@ async def get_add_button(client):
         [InlineKeyboardButton("➕ Add Me In Your Group", url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
 
-# ============================================ #
-# ============ EXTRA PROTECTION ============== #
+# ============================================= #
+# ============ MAIN GROUP HANDLER ============ #
 
 @app.on_message(filters.group & ~filters.service)
-async def extra_protection(client: Client, message):
+async def group_security(client: Client, message):
 
     if not message.from_user:
         return
 
     chat_id = message.chat.id
     user_id = message.from_user.id
-
-    # Skip whitelisted
-    if await is_whitelisted(chat_id, user_id):
-        return
-
     text = message.text or message.caption or ""
 
-    # 1️⃣ LINK DELETE
+    # ===============================
+    # 🔹 1. MESSAGE LINK DELETE
+    # ===============================
+
     if LINK_REGEX.search(text):
         try:
             await message.delete()
@@ -87,7 +94,10 @@ async def extra_protection(client: Client, message):
         )
         return
 
-    # 2️⃣ FORWARD DELETE
+    # ===============================
+    # 🔹 2. FORWARD DELETE
+    # ===============================
+
     if message.forward_date:
         try:
             await message.delete()
@@ -102,7 +112,10 @@ async def extra_protection(client: Client, message):
         )
         return
 
-    # 3️⃣ ABUSE FILTER
+    # ===============================
+    # 🔹 3. ABUSE FILTER
+    # ===============================
+
     lowered = text.lower()
     for word in ABUSE_WORDS:
         if word in lowered:
@@ -119,7 +132,10 @@ async def extra_protection(client: Client, message):
             )
             return
 
-    # 4️⃣ AUTO MEDIA DELETE (20 sec silent)
+    # ===============================
+    # 🔹 4. AUTO MEDIA DELETE
+    # ===============================
+
     if message.media:
         await asyncio.sleep(20)
         try:
@@ -127,21 +143,18 @@ async def extra_protection(client: Client, message):
         except:
             pass
 
-# ============================================ #
+
+# ============================================= #
 # ========== EDITED MESSAGE CHECK ============ #
 
 @app.on_edited_message(filters.group)
-async def edited_message_protection(client: Client, message):
+async def edited_security(client: Client, message):
 
     if not message.from_user:
         return
 
     chat_id = message.chat.id
     user_id = message.from_user.id
-
-    if await is_whitelisted(chat_id, user_id):
-        return
-
     text = message.text or message.caption or ""
 
     if LINK_REGEX.search(text):
@@ -157,8 +170,10 @@ async def edited_message_protection(client: Client, message):
             reply_markup=kb
         )
 
-# ============================================ #
-# ============ ORIGINAL BIO SYSTEM =========== #
+
+# ============================================= #
+# ========== ORIGINAL BIO WARNING ============ #
+# 🔥 YE SYSTEM SAME HAI — TOUCH NAHI KIYA
 
 @app.on_message(filters.group)
 async def check_bio(client: Client, message):
@@ -169,7 +184,7 @@ async def check_bio(client: Client, message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    # ✅ FIXED BUG HERE
+    # Skip admin & whitelist (original logic)
     if await is_admin(client, chat_id, user_id) or await is_whitelisted(chat_id, user_id):
         return
 
@@ -180,22 +195,52 @@ async def check_bio(client: Client, message):
     mention = f"[{full_name}](tg://user?id={user_id})"
 
     if URL_PATTERN.search(bio):
+
         try:
             await message.delete()
-        except:
-            return
+        except errors.MessageDeleteForbidden:
+            return await message.reply_text("Please give me delete permission.")
 
         mode, limit, penalty = await get_config(chat_id)
-        count = await increment_warning(chat_id, user_id)
 
-        await message.reply_text(
-            f"🚨 **User has link in bio!**\n\n👤 {mention}\n⚠️ Warning {count}/{limit}"
-        )
+        if mode == "warn":
+
+            count = await increment_warning(chat_id, user_id)
+
+            warning_text = (
+                f"🚨 **Warning Issued** 🚨\n\n"
+                f"👤 {mention}\n"
+                f"⚠️ Warning {count}/{limit}\n\n"
+                "Remove link from your bio."
+            )
+
+            sent = await message.reply_text(warning_text)
+
+            if count >= limit:
+                try:
+                    if penalty == "mute":
+                        await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
+                        await sent.edit_text(f"{mention} has been 🔇 muted for [Link In Bio].")
+                    else:
+                        await client.ban_chat_member(chat_id, user_id)
+                        await sent.edit_text(f"{mention} has been 🔨 banned for [Link In Bio].")
+                except:
+                    pass
+
+        else:
+            try:
+                if mode == "mute":
+                    await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
+                else:
+                    await client.ban_chat_member(chat_id, user_id)
+            except:
+                pass
 
     else:
         await reset_warnings(chat_id, user_id)
 
-# ============================================ #
+
+# ============================================= #
 
 if __name__ == "__main__":
     app.run()
