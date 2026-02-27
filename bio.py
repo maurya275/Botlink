@@ -1,5 +1,6 @@
 import asyncio
 import re
+import time
 from pyrogram import Client, filters
 from pyrogram.types import ChatPermissions, InlineKeyboardMarkup, InlineKeyboardButton
 from config import API_ID, API_HASH, BOT_TOKEN
@@ -97,9 +98,11 @@ async def security(_, message):
 
     member = await app.get_chat_member(chat_id, user_id)
 
+    # ✅ ADMIN FULLY SAFE (bio ignored)
     if is_admin(member):
         return
 
+    # ===== BIO CHECK =====
     try:
         user = await app.get_chat(user_id)
         bio = user.bio or ""
@@ -107,14 +110,32 @@ async def security(_, message):
         bio = ""
 
     if LINK_REGEX.search(bio):
+
         await message.delete()
+
         await message.reply_text(
-            "🚫 Bio Link Detected\n"
-            "⚠ Please remove link from your bio.",
+            "🚫 𝗕𝗜𝗢 𝗟𝗜𝗡𝗞 𝗗𝗘𝗧𝗘𝗖𝗧𝗘𝗗\n\n"
+            "⚠ Your profile contains a restricted link.\n"
+            "🔒 You have been muted for 60 minutes.\n\n"
+            "Please remove the link from your bio.",
             reply_markup=await add_button()
         )
+
+        try:
+            await app.restrict_chat_member(
+                chat_id,
+                user_id,
+                ChatPermissions(
+                    can_send_messages=False
+                ),
+                until_date=int(time.time()) + 3600
+            )
+        except:
+            pass
+
         return
 
+    # ===== LINK DELETE =====
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
@@ -124,6 +145,7 @@ async def security(_, message):
         )
         return
 
+    # ===== FORWARD DELETE =====
     if message.forward_date:
         await message.delete()
         await message.reply_text(
@@ -133,6 +155,7 @@ async def security(_, message):
         )
         return
 
+    # ===== ABUSE DELETE =====
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
@@ -143,6 +166,7 @@ async def security(_, message):
             )
             return
 
+    # ===== MEDIA AUTO DELETE =====
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
         try:
