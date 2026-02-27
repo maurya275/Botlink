@@ -2,7 +2,7 @@ import re
 
 API_ID = "30861624"
 API_HASH = "4bac8ea697e16d2323ad170a04aa552a"
-BOT_TOKEN = "8383893227:AAHWCKH5RJuY7ZENpsmZCzrPIIYJol-hJIY"
+BOT_TOKEN = "8692072884:AAEzRyd7QiK3leHn-hc_qKEWf0nZGnLQq3Y"
 
 MONGO_URI = "mongodb+srv://Shizukamusicsss:Shizukamusicsss@cluster0.zupd3uz.mongodb.net/?appName=Cluster0"
 
