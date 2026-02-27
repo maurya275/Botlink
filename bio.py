@@ -23,7 +23,7 @@ ABUSE_WORDS = [
     "madarchod","bhosdike","chutiya","mc","bc",
     "gandu","randi","harami","fuck","shit","bitch",
 
-"Land,"Chut","Gand","Bur"
+"Land,"Chut","Gand","Bur",
 ]
 
 LINK_REGEX = re.compile(
