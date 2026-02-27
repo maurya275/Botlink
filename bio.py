@@ -2,7 +2,7 @@ import asyncio
 import re
 from pyrogram import Client, filters
 from pyrogram.types import ChatPermissions, InlineKeyboardMarkup, InlineKeyboardButton
-from config import API_ID, API_HASH, BOT_TOKEN, URL_PATTERN
+from config import API_ID, API_HASH, BOT_TOKEN
 
 app = Client(
     "advanced_security_bot",
@@ -11,7 +11,7 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-# ================= SUPPORT BUTTONS ================= #
+# ================= SUPPORT ================= #
 
 SUPPORT_CHANNEL = "https://t.me/YourChannelUsername"
 SUPPORT_GROUP = "https://t.me/YourGroupUsername"
@@ -23,6 +23,7 @@ ABUSE_WORDS = [
     "gandu","randi","harami","fuck","shit","bitch"
 ]
 
+# Only real links (username allowed)
 LINK_REGEX = re.compile(
     r"(https?://|www\.|t\.me/|telegram\.me/)",
     re.IGNORECASE
@@ -38,24 +39,14 @@ bio_free_db = {}
 def is_admin(member):
     return member.status in ["administrator", "creator"]
 
-def is_bio_free(chat_id, user_id):
-    return user_id in bio_free_db.get(chat_id, set())
+async def add_group_button():
+    bot = await app.get_me()
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
+                              url=f"https://t.me/{bot.username}?startgroup=true")]
+    ])
 
-def add_bio_free(chat_id, user_id):
-    bio_free_db.setdefault(chat_id, set()).add(user_id)
-
-def remove_bio_free(chat_id, user_id):
-    bio_free_db.setdefault(chat_id, set()).discard(user_id)
-
-def get_warn(chat_id, user_id):
-    return warn_db.get(chat_id, {}).get(user_id, 0)
-
-def add_warn(chat_id, user_id):
-    warn_db.setdefault(chat_id, {})
-    warn_db[chat_id][user_id] = get_warn(chat_id, user_id) + 1
-    return warn_db[chat_id][user_id]
-
-async def main_buttons():
+async def start_buttons():
     bot = await app.get_me()
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
@@ -66,34 +57,27 @@ async def main_buttons():
         ]
     ])
 
-async def add_group_button():
-    bot = await app.get_me()
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
-                              url=f"https://t.me/{bot.username}?startgroup=true")]
-    ])
-
 # ================= START ================= #
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
 
     text = (
-        "╔════════════════════════════╗\n"
-        " ✨ 𝐀𝐃𝐕𝐀𝐍𝐂𝐄𝐃 𝐆𝐑𝐎𝐔𝐏 𝐒𝐄𝐂𝐔𝐑𝐈𝐓𝐘 ✨\n"
-        "╚════════════════════════════╝\n\n"
-
-        "🛡 𝗕𝗜𝗢 𝗟𝗜𝗡𝗞 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡\n"
-        "🔗 𝗔𝗡𝗧𝗜 𝗟𝗜𝗡𝗞 𝗦𝗬𝗦𝗧𝗘𝗠\n"
-        "🚫 𝗔𝗡𝗧𝗜 𝗔𝗕𝗨𝗦𝗘 𝗣𝗥𝗢𝗧𝗘𝗖𝗧𝗜𝗢𝗡\n"
-        "📤 𝗙𝗢𝗥𝗪𝗔𝗥𝗗 𝗖𝗢𝗡𝗧𝗥𝗢𝗟\n"
-        "✏ 𝗘𝗗𝗜𝗧 𝗦𝗘𝗖𝗨𝗥𝗜𝗧𝗬\n"
-        "🗑 𝗠𝗘𝗗𝗜𝗔 𝗖𝗟𝗘𝗔𝗡𝗨𝗣\n\n"
-
-        "⚡ 𝗣𝗿𝗲𝗺𝗶𝘂𝗺 • 𝗙𝗮𝘀𝘁 • 𝗦𝘁𝗮𝗯𝗹𝗲"
+        "╔══════════════════════════════╗\n"
+        "║      ✨ 𝐀𝐃𝐕𝐀𝐍𝐂𝐄𝐃 𝐒𝐄𝐂𝐔𝐑𝐈𝐓𝐘 ✨      ║\n"
+        "╠══════════════════════════════╣\n"
+        "║ 🛡  Bio Link Protection       ║\n"
+        "║ 🔗  Anti Link System          ║\n"
+        "║ 🚫  Abuse Filter              ║\n"
+        "║ 📤  Forward Control           ║\n"
+        "║ ✏  Edit Protection            ║\n"
+        "║ 🗑  Media Auto Cleanup         ║\n"
+        "╠══════════════════════════════╣\n"
+        "║ ⚡ Fast • Stable • Premium     ║\n"
+        "╚══════════════════════════════╝"
     )
 
-    await message.reply_text(text, reply_markup=await main_buttons())
+    await message.reply_text(text, reply_markup=await start_buttons())
 
 # ================= MAIN SECURITY ================= #
 
@@ -109,48 +93,41 @@ async def security(_, message):
 
     member = await app.get_chat_member(chat_id, user_id)
 
-    # ADMIN SAFE (ignore admin bio link)
+    # 🔥 ADMIN FULLY SAFE (bio ignored completely)
     if is_admin(member):
         return
 
     # ===== BIO CHECK =====
-    if not is_bio_free(chat_id, user_id):
-        try:
-            user = await app.get_chat(user_id)
-            bio = user.bio or ""
-        except:
-            bio = ""
+    try:
+        user = await app.get_chat(user_id)
+        bio = user.bio or ""
+    except:
+        bio = ""
 
-        if LINK_REGEX.search(bio):
-            await message.delete()
-            warn = add_warn(chat_id, user_id)
+    if LINK_REGEX.search(bio):
+        await message.delete()
 
-            warn_msg = await message.reply_text(
-                "╔════════════════════╗\n"
-                "🚫 𝐁𝐢𝐨 𝐋𝐢𝐧𝐤 𝐃𝐞𝐭𝐞𝐜𝐭𝐞𝐝\n"
-                "╚════════════════════╝\n"
-                f"⚠ 𝐖𝐚𝐫𝐧𝐢𝐧𝐠: {warn}/3\n"
-                "🔎 Please remove link from bio.",
-                reply_markup=await add_group_button()
-            )
-
-            if warn >= 3:
-                await app.restrict_chat_member(chat_id, user_id, ChatPermissions())
-                await warn_msg.edit_text(
-                    "🔇 𝐔𝐬𝐞𝐫 𝐌𝐮𝐭𝐞𝐝\n"
-                    "Reason: Repeated Bio Violations",
-                    reply_markup=await add_group_button()
-                )
-            return
+        await message.reply_text(
+            "╔════════════════════════╗\n"
+            "║ 🚫  𝐁𝐢𝐨 𝐋𝐢𝐧𝐤 𝐃𝐞𝐭𝐞𝐜𝐭𝐞𝐝        ║\n"
+            "╠════════════════════════╣\n"
+            "║ 🔎 Remove link from bio ║\n"
+            "║ ⚠ Repeated = Auto Mute  ║\n"
+            "╚════════════════════════╝",
+            reply_markup=await add_group_button()
+        )
+        return
 
     # ===== LINK DELETE =====
     if LINK_REGEX.search(text):
         await message.delete()
+
         await message.reply_text(
-            "╔════════════════════╗\n"
-            "🚫 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝\n"
-            "╚════════════════════╝\n"
-            "🔐 Links are not allowed here.",
+            "╔════════════════════════╗\n"
+            "║ 🚫  𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝              ║\n"
+            "╠════════════════════════╣\n"
+            "║ 🔐 Links not allowed    ║\n"
+            "╚════════════════════════╝",
             reply_markup=await add_group_button()
         )
         return
@@ -158,9 +135,13 @@ async def security(_, message):
     # ===== FORWARD DELETE =====
     if message.forward_date:
         await message.delete()
+
         await message.reply_text(
-            "📤 𝐅𝐨𝐫𝐰𝐚𝐫𝐝𝐞𝐝 𝐌𝐞𝐬𝐬𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝\n"
-            "🔒 Forwarding is restricted.",
+            "╔════════════════════════╗\n"
+            "║ 📤  𝐅𝐨𝐫𝐰𝐚𝐫𝐝 𝐑𝐞𝐦𝐨𝐯𝐞𝐝          ║\n"
+            "╠════════════════════════╣\n"
+            "║ 🔒 Forwarding blocked   ║\n"
+            "╚════════════════════════╝",
             reply_markup=await add_group_button()
         )
         return
@@ -169,11 +150,13 @@ async def security(_, message):
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
+
             await message.reply_text(
-                "╔════════════════════╗\n"
-                "⚠ 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞\n"
-                "╚════════════════════╝\n"
-                "💬 Please maintain respectful chat.",
+                "╔════════════════════════╗\n"
+                "║ ⚠  𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠.        ║\n"
+                "╠════════════════════════╣\n"
+                "║ 💬 Maintain Respect     ║\n"
+                "╚════════════════════════╝",
                 reply_markup=await add_group_button()
             )
             return
@@ -195,6 +178,8 @@ async def edited(_, message):
         return
 
     member = await app.get_chat_member(message.chat.id, message.from_user.id)
+
+    # ADMIN SAFE
     if is_admin(member):
         return
 
@@ -203,23 +188,14 @@ async def edited(_, message):
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
-            "✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝\n"
-            "🔐 Editing to add links is not allowed.",
+            "╔════════════════════════╗\n"
+            "║ ✏  𝐄𝐝𝐢𝐭𝐞𝐝 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝      ║\n"
+            "╚════════════════════════╝",
             reply_markup=await add_group_button()
         )
-        return
-
-    for word in ABUSE_WORDS:
-        if word in text.lower():
-            await message.delete()
-            await message.reply_text(
-                "✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-                reply_markup=await add_group_button()
-            )
-            return
 
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Running Premium Version ✅")
+    print("Bot Running Premium Final Version ✅")
     app.run()
