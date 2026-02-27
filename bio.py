@@ -59,16 +59,26 @@ async def add_button():
 async def start(_, message):
 
     text = (
-        "✨ 𝗔𝗗𝗩𝗔𝗡𝗖𝗘𝗗 𝗚𝗥𝗢𝗨𝗣 𝗦𝗘𝗖𝗨𝗥𝗜𝗧𝗬 ✨\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "✦ 𝐁𝐎𝐓 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐑 ✦\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
 
-        "🛡 𝗕𝗶𝗼 𝗟𝗶𝗻𝗸 𝗣𝗿𝗼𝘁𝗲𝗰𝘁𝗶𝗼𝗻\n"
-        "🔗 𝗔𝗻𝘁𝗶 𝗟𝗶𝗻𝗸 𝗦𝘆𝘀𝘁𝗲𝗺\n"
-        "🚫 𝗔𝗻𝘁𝗶 𝗔𝗯𝘂𝘀𝗲 𝗙𝗶𝗹𝘁𝗲𝗿\n"
-        "📤 𝗙𝗼𝗿𝘄𝗮𝗿𝗱 𝗖𝗼𝗻𝘁𝗿𝗼𝗹\n"
-        "✏ 𝗘𝗱𝗶𝘁 𝗣𝗿𝗼𝘁𝗲𝗰𝘁𝗶𝗼𝗻\n"
-        "🗑 𝗠𝗲𝗱𝗶𝗮 𝗔𝘂𝘁𝗼 𝗖𝗹𝗲𝗮𝗻\n\n"
+        "🛡 Elite Group Security System\n\n"
 
-        "⚡ 𝗣𝗿𝗲𝗺𝗶𝘂𝗺 • 𝗙𝗮𝘀𝘁 • 𝗦𝘁𝗮𝗯𝗹𝗲"
+        "🚫 Auto Link Protection\n"
+        "✏ Edit-Time Detection\n"
+        "📤 Forward Control\n"
+        "🔞 Abuse Filter\n"
+        "🔎 Bio Link Scanner\n"
+        "👑 Admin Safe Mode\n"
+        "⚡ Real-Time Monitoring\n\n"
+
+        "━━━━━━━━━━━━━━━━━━\n"
+        "💎 Premium • Fast • Stable\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
+
+        "🚀 Add Me To Your Group\n"
+        "For Smart Automatic Protection"
     )
 
     await message.reply_text(text, reply_markup=await start_buttons())
@@ -87,11 +97,9 @@ async def security(_, message):
 
     member = await app.get_chat_member(chat_id, user_id)
 
-    # ✅ ADMIN FULLY SAFE (bio ignored)
     if is_admin(member):
         return
 
-    # ===== BIO CHECK =====
     try:
         user = await app.get_chat(user_id)
         bio = user.bio or ""
@@ -101,45 +109,40 @@ async def security(_, message):
     if LINK_REGEX.search(bio):
         await message.delete()
         await message.reply_text(
-            "🚫 𝗕𝗶𝗼 𝗟𝗶𝗻𝗸 𝗗𝗲𝘁𝗲𝗰𝘁𝗲𝗱\n"
-            "⚠ Please remove link from your bio.\n"
-            "🔒 Continued violation may result in mute.",
+            "🚫 Bio Link Detected\n"
+            "⚠ Please remove link from your bio.",
             reply_markup=await add_button()
         )
         return
 
-    # ===== LINK DELETE =====
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
-            "🚫 𝗟𝗶𝗻𝗸 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
-            "🔐 Sharing links is not allowed here.",
+            "🚫 Link Removed\n"
+            "🔐 Sharing links is not allowed.",
             reply_markup=await add_button()
         )
         return
 
-    # ===== FORWARD DELETE =====
     if message.forward_date:
         await message.delete()
         await message.reply_text(
-            "📤 𝗙𝗼𝗿𝘄𝗮𝗿𝗱𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
-            "🔒 Forwarding is restricted in this group.",
+            "📤 Forwarded Message Removed\n"
+            "🔒 Forwarding is restricted.",
             reply_markup=await add_button()
         )
         return
 
-    # ===== ABUSE DELETE =====
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
             await message.reply_text(
-                "⚠ 𝗜𝗻𝗮𝗽𝗽𝗿𝗼𝗽𝗿𝗶𝗮𝘁𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
-                "💬 Please maintain respectful conversation.",
+                "⚠ Inappropriate Language Removed\n"
+                "💬 Maintain respectful conversation.",
                 reply_markup=await add_button()
             )
             return
 
-    # ===== MEDIA AUTO DELETE =====
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
         try:
@@ -157,28 +160,25 @@ async def edited(_, message):
 
     member = await app.get_chat_member(message.chat.id, message.from_user.id)
 
-    # ✅ ADMIN SAFE
     if is_admin(member):
         return
 
     text = message.text or message.caption or ""
 
-    # Edited Link
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
-            "✏ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗟𝗶𝗻𝗸 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
-            "🔐 Editing messages to add links is not allowed.",
+            "✏ Edited Link Removed\n"
+            "🔐 Editing to add links is not allowed.",
             reply_markup=await add_button()
         )
         return
 
-    # Edited Abuse
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
             await message.reply_text(
-                "✏ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗜𝗻𝗮𝗽𝗽𝗿𝗼𝗽𝗿𝗶𝗮𝘁𝗲 𝗟𝗮𝗻𝗴𝘂𝗮𝗴𝗲 𝗥𝗲𝗺𝗼𝘃𝗲𝗱\n"
+                "✏ Edited Inappropriate Language Removed\n"
                 "💬 Respect group guidelines.",
                 reply_markup=await add_button()
             )
