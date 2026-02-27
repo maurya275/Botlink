@@ -12,12 +12,8 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-# ================= SUPPORT ================= #
-
 SUPPORT_CHANNEL = "https://t.me/YourChannelUsername"
 SUPPORT_GROUP = "https://t.me/YourGroupUsername"
-
-# ================= SETTINGS ================= #
 
 ABUSE_WORDS = [
     "madarchod","bhosdike","chutiya","mc","bc",
@@ -31,10 +27,7 @@ LINK_REGEX = re.compile(
 
 MEDIA_DELETE_TIME = 50
 
-# ===== WARNING STORAGE =====
 bio_warnings = {}
-
-# ================= HELPERS ================= #
 
 def is_admin(member):
     return member.status in ["administrator", "creator"]
@@ -57,11 +50,8 @@ async def add_button():
                               url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
 
-# ================= START ================= #
-
 @app.on_message(filters.command("start"))
 async def start(_, message):
-
     text = (
         "━━━━━━━━━━━━━━━━━━\n"
         "✦ 𝐁𝐎𝐓 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐑 ✦\n"
@@ -73,10 +63,7 @@ async def start(_, message):
         "⚡ Real-Time Protection\n\n"
         "💎 Premium • Fast • Stable"
     )
-
     await message.reply_text(text, reply_markup=await start_buttons())
-
-# ================= MAIN SECURITY ================= #
 
 @app.on_message(filters.group & ~filters.service)
 async def security(_, message):
@@ -86,15 +73,12 @@ async def security(_, message):
 
     chat_id = message.chat.id
     user_id = message.from_user.id
-    text = message.text or message.caption or ""
 
     member = await app.get_chat_member(chat_id, user_id)
 
-    # ✅ ADMIN SAFE
     if is_admin(member):
         return
 
-    # ===== BIO CHECK WITH 3 WARNING SYSTEM =====
     try:
         user = await app.get_chat(user_id)
         bio = user.bio or ""
@@ -109,22 +93,30 @@ async def security(_, message):
         if count < 3:
             await message.reply_text(
                 f"⚠ 𝗕𝗜𝗢 𝗟𝗜𝗡𝗞 𝗪𝗔𝗥𝗡𝗜𝗡𝗚 ({count}/3)\n\n"
-                "🚫 Your profile contains a restricted link.\n"
-                "Please remove it to avoid mute.",
+                "Remove link from your bio to avoid mute.",
                 reply_markup=await add_button()
             )
             return
 
-        # 3rd time → mute
+        # ✅ PROPER FULL MUTE FIX
         try:
             await app.restrict_chat_member(
                 chat_id,
                 user_id,
-                ChatPermissions(can_send_messages=False),
+                ChatPermissions(
+                    can_send_messages=False,
+                    can_send_media_messages=False,
+                    can_send_other_messages=False,
+                    can_add_web_page_previews=False,
+                    can_send_polls=False,
+                    can_change_info=False,
+                    can_invite_users=False,
+                    can_pin_messages=False
+                ),
                 until_date=int(time.time()) + 1800
             )
-        except:
-            pass
+        except Exception as e:
+            print("Mute Error:", e)
 
         await message.reply_text(
             "🔒 𝗨𝗦𝗘𝗥 𝗠𝗨𝗧𝗘𝗗\n\n"
@@ -135,47 +127,6 @@ async def security(_, message):
 
         bio_warnings[user_id] = 0
         return
-
-    # ===== NORMAL LINK DELETE =====
-    if LINK_REGEX.search(text):
-        await message.delete()
-        await message.reply_text(
-            "🚫 Link Removed\n"
-            "🔐 Sharing links is not allowed.",
-            reply_markup=await add_button()
-        )
-        return
-
-    # ===== FORWARD DELETE =====
-    if message.forward_date:
-        await message.delete()
-        await message.reply_text(
-            "📤 Forwarded Message Removed\n"
-            "🔒 Forwarding is restricted.",
-            reply_markup=await add_button()
-        )
-        return
-
-    # ===== ABUSE DELETE =====
-    for word in ABUSE_WORDS:
-        if word in text.lower():
-            await message.delete()
-            await message.reply_text(
-                "⚠ Inappropriate Language Removed\n"
-                "💬 Maintain respectful conversation.",
-                reply_markup=await add_button()
-            )
-            return
-
-    # ===== MEDIA AUTO DELETE =====
-    if message.media:
-        await asyncio.sleep(MEDIA_DELETE_TIME)
-        try:
-            await message.delete()
-        except:
-            pass
-
-# ================= RUN ================= #
 
 if __name__ == "__main__":
     print("Bot Running Final Version ✅")
