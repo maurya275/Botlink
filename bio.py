@@ -31,17 +31,6 @@ warn_limit_db = {}
 
 # ================= HELPERS ================= #
 
-def get_warn(chat_id, user_id):
-    return warn_db.get(chat_id, {}).get(user_id, 0)
-
-def add_warn(chat_id, user_id):
-    warn_db.setdefault(chat_id, {})
-    warn_db[chat_id][user_id] = get_warn(chat_id, user_id) + 1
-    return warn_db[chat_id][user_id]
-
-def get_warn_limit(chat_id):
-    return warn_limit_db.get(chat_id, 3)
-
 def is_admin(member):
     return member.status in ["administrator", "creator"]
 
@@ -54,81 +43,83 @@ def add_bio_free(chat_id, user_id):
 def remove_bio_free(chat_id, user_id):
     bio_free_db.setdefault(chat_id, set()).discard(user_id)
 
-async def get_button():
+def get_warn(chat_id, user_id):
+    return warn_db.get(chat_id, {}).get(user_id, 0)
+
+def add_warn(chat_id, user_id):
+    warn_db.setdefault(chat_id, {})
+    warn_db[chat_id][user_id] = get_warn(chat_id, user_id) + 1
+    return warn_db[chat_id][user_id]
+
+def get_warn_limit(chat_id):
+    return warn_limit_db.get(chat_id, 3)
+
+async def premium_button():
     bot = await app.get_me()
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("➕ Add Me In Your Group",
+        [InlineKeyboardButton("✨ Add Me To Your Group ✨",
                               url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
 
-# ================= START ================= #
+# ================= PREMIUM MESSAGES ================= #
 
-@app.on_message(filters.command("start"))
-async def start(_, message):
-    text = (
-        "✨ **Advanced Bio Protection & Security Bot** ✨\n\n"
-        "🛡 Smart Bio Link Detection (Warn + Auto Mute)\n"
-        "🔗 Instant Link Removal\n"
-        "🚫 Abuse Language Protection\n"
-        "📤 Forward Message Restriction\n"
-        "✏ Edited Message Security\n"
-        "🗑 Auto Media Cleanup (Silent)\n\n"
-        "⚡ Fast • Secure • Professional\n"
-        "Use /help to see commands."
-    )
+LINK_MSG = (
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "🚫 𝑳𝒊𝒏𝒌 𝑫𝒆𝒕𝒆𝒄𝒕𝒆𝒅 & 𝑹𝒆𝒎𝒐𝒗𝒆𝒅\n"
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "🔗 Sharing external links is restricted.\n"
+    "⚡ Please maintain group quality.\n"
+)
 
-    await message.reply_text(text, reply_markup=await get_button())
+ABUSE_MSG = (
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "⚠ 𝑰𝒏𝒂𝒑𝒑𝒓𝒐𝒑𝒓𝒊𝒂𝒕𝒆 𝑳𝒂𝒏𝒈𝒖𝒂𝒈𝒆 𝑹𝒆𝒎𝒐𝒗𝒆𝒅\n"
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "🛡 Respectful conversation is required.\n"
+)
 
-# ================= HELP ================= #
+FORWARD_MSG = (
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "📤 𝑭𝒐𝒓𝒘𝒂𝒓𝒅𝒆𝒅 𝑴𝒆𝒔𝒔𝒂𝒈𝒆 𝑹𝒆𝒎𝒐𝒗𝒆𝒅\n"
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "⚡ Forwarded content is not allowed.\n"
+)
 
-@app.on_message(filters.command("help"))
-async def help_cmd(_, message):
-    await message.reply_text(
-        "**Admin Commands:**\n"
-        "/free (reply)\n"
-        "/unfree (reply)\n"
-        "/freelist\n"
-    )
+EDIT_LINK_MSG = "✏ 𝑬𝒅𝒊𝒕𝒆𝒅 𝑳𝒊𝒏𝒌 𝑹𝒆𝒎𝒐𝒗𝒆𝒅."
+EDIT_ABUSE_MSG = "✏ 𝑬𝒅𝒊𝒕𝒆𝒅 𝑰𝒏𝒂𝒑𝒑𝒓𝒐𝒑𝒓𝒊𝒂𝒕𝒆 𝑳𝒂𝒏𝒈𝒖𝒂𝒈𝒆 𝑹𝒆𝒎𝒐𝒗𝒆𝒅."
 
-# ================= FREE COMMANDS ================= #
+# ================= FREE COMMANDS FIXED ================= #
 
-@app.on_message(filters.command("free") & filters.group)
-async def free_cmd(_, message):
+@app.on_message(filters.group & filters.command(["free","unfree","freelist"]))
+async def free_system(_, message):
+
     member = await app.get_chat_member(message.chat.id, message.from_user.id)
     if not is_admin(member):
         return
 
-    if message.reply_to_message:
+    cmd = message.command[0].lower()
+
+    if cmd == "free" and message.reply_to_message:
         user_id = message.reply_to_message.from_user.id
         add_bio_free(message.chat.id, user_id)
-        await message.reply_text("✅ User is now exempted from Bio Link detection.")
-
-@app.on_message(filters.command("unfree") & filters.group)
-async def unfree_cmd(_, message):
-    member = await app.get_chat_member(message.chat.id, message.from_user.id)
-    if not is_admin(member):
+        await message.reply_text("✅ User exempted from Bio Link detection.")
         return
 
-    if message.reply_to_message:
+    if cmd == "unfree" and message.reply_to_message:
         user_id = message.reply_to_message.from_user.id
         remove_bio_free(message.chat.id, user_id)
-        await message.reply_text("❌ User removed from Bio Free list.")
-
-@app.on_message(filters.command("freelist") & filters.group)
-async def freelist_cmd(_, message):
-    member = await app.get_chat_member(message.chat.id, message.from_user.id)
-    if not is_admin(member):
+        await message.reply_text("❌ User removed from Bio exemption list.")
         return
 
-    users = bio_free_db.get(message.chat.id, set())
-    if not users:
-        await message.reply_text("No users in Bio Free list.")
-        return
-
-    text = "📋 **Bio Free Users:**\n\n"
-    for u in users:
-        text += f"• `{u}`\n"
-    await message.reply_text(text)
+    if cmd == "freelist":
+        users = bio_free_db.get(message.chat.id, set())
+        if not users:
+            await message.reply_text("No users in Bio exemption list.")
+            return
+        text = "📋 **Bio Exempted Users:**\n\n"
+        for u in users:
+            text += f"• `{u}`\n"
+        await message.reply_text(text)
 
 # ================= MAIN SECURITY ================= #
 
@@ -159,49 +150,39 @@ async def security(_, message):
             warn = add_warn(chat_id, user_id)
             limit = get_warn_limit(chat_id)
 
-            warn_msg = await message.reply_text(
-                f"🚫 **Bio Link Detected**\n"
-                f"⚠ Warning {warn}/{limit}",
-                reply_markup=await get_button()
+            msg = await message.reply_text(
+                f"🚫 Bio Link Detected\n⚠ Warning {warn}/{limit}",
+                reply_markup=await premium_button()
             )
 
             if warn >= limit:
                 await app.restrict_chat_member(chat_id, user_id, ChatPermissions())
-                await warn_msg.edit_text(
-                    "🔇 User Muted (Bio Link Violation)",
-                    reply_markup=await get_button()
+                await msg.edit_text(
+                    "🔇 User Muted (Bio Violation)",
+                    reply_markup=await premium_button()
                 )
             return
 
-    # ===== LINK DELETE =====
+    # ===== LINK =====
     if LINK_REGEX.search(text):
         await message.delete()
-        await message.reply_text(
-            "🔗 **Link Deleted Successfully.**",
-            reply_markup=await get_button()
-        )
+        await message.reply_text(LINK_MSG, reply_markup=await premium_button())
         return
 
-    # ===== FORWARD DELETE =====
+    # ===== FORWARD =====
     if message.forward_date:
         await message.delete()
-        await message.reply_text(
-            "📤 **Forwarded Message Deleted.**",
-            reply_markup=await get_button()
-        )
+        await message.reply_text(FORWARD_MSG, reply_markup=await premium_button())
         return
 
-    # ===== ABUSE DELETE =====
+    # ===== ABUSE =====
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
-            await message.reply_text(
-                "⚠ **Inappropriate Language Deleted.**",
-                reply_markup=await get_button()
-            )
+            await message.reply_text(ABUSE_MSG, reply_markup=await premium_button())
             return
 
-    # ===== MEDIA SILENT DELETE =====
+    # ===== MEDIA SILENT =====
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
         try:
@@ -209,39 +190,26 @@ async def security(_, message):
         except:
             pass
 
-# ===== EDITED CHECK WITH MESSAGE =====
+# ===== EDITED CHECK =====
 
 @app.on_edited_message(filters.group)
 async def edited(_, message):
 
-    if not message.from_user:
-        return
-
     text = message.text or message.caption or ""
-
-    member = await app.get_chat_member(message.chat.id, message.from_user.id)
-    if is_admin(member):
-        return
 
     if LINK_REGEX.search(text):
         await message.delete()
-        await message.reply_text(
-            "✏ **Edited Link Deleted.**",
-            reply_markup=await get_button()
-        )
+        await message.reply_text(EDIT_LINK_MSG, reply_markup=await premium_button())
         return
 
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
-            await message.reply_text(
-                "✏ **Edited Inappropriate Language Deleted.**",
-                reply_markup=await get_button()
-            )
+            await message.reply_text(EDIT_ABUSE_MSG, reply_markup=await premium_button())
             return
 
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Running Final Premium Version ✅")
+    print("Bot Running Premium Final Version ✅")
     app.run()
