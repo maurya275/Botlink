@@ -2,7 +2,7 @@ import asyncio
 import re
 from pyrogram import Client, filters
 from pyrogram.types import ChatPermissions, InlineKeyboardMarkup, InlineKeyboardButton
-from config import API_ID, API_HASH, BOT_TOKEN, URL_PATTERN, SUPPORT_GROUP, SUPPORT_CHANNEL
+from config import API_ID, API_HASH, BOT_TOKEN, URL_PATTERN
 
 app = Client(
     "advanced_security_bot",
@@ -11,6 +11,11 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
+# ================= MANUAL SUPPORT LINKS (ONLY HERE) ================= #
+
+SUPPORT_CHANNEL = "https://t.me/YourChannelUsername"
+SUPPORT_GROUP = "https://t.me/YourGroupUsername"
+
 # ================= SETTINGS ================= #
 
 ABUSE_WORDS = [
@@ -18,7 +23,7 @@ ABUSE_WORDS = [
     "gandu","randi","harami","fuck","shit","bitch"
 ]
 
-# USERNAME REMOVE ( @username allowed )
+# Only real links (username allowed)
 LINK_REGEX = re.compile(
     r"(https?://|www\.|t\.me/|telegram\.me/)",
     re.IGNORECASE
@@ -147,7 +152,7 @@ async def security(_, message):
     if is_admin(member):
         return
 
-    # ===== BIO CHECK (ignore only @username) =====
+    # ===== BIO CHECK =====
     if not is_bio_free(chat_id, user_id):
         try:
             user = await app.get_chat(user_id)
@@ -165,46 +170,33 @@ async def security(_, message):
             )
 
             if warn >= 3:
-                await app.restrict_chat_member(
-                    chat_id,
-                    user_id,
-                    ChatPermissions()
-                )
+                await app.restrict_chat_member(chat_id, user_id, ChatPermissions())
                 await warn_msg.edit_text(
                     "🔇 𝐔𝐬𝐞𝐫 𝐌𝐮𝐭𝐞𝐝 (𝐁𝐢𝐨 𝐕𝐢𝐨𝐥𝐚𝐭𝐢𝐨𝐧)",
                     reply_markup=await add_group_button()
                 )
             return
 
-    # ===== LINK DELETE =====
+    # LINK DELETE
     if LINK_REGEX.search(text):
         await message.delete()
-        await message.reply_text(
-            "🚫 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-            reply_markup=await add_group_button()
-        )
+        await message.reply_text("🚫 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝", reply_markup=await add_group_button())
         return
 
-    # ===== FORWARD DELETE =====
+    # FORWARD DELETE
     if message.forward_date:
         await message.delete()
-        await message.reply_text(
-            "📤 𝐅𝐨𝐫𝐰𝐚𝐫𝐝𝐞𝐝 𝐌𝐞𝐬𝐬𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-            reply_markup=await add_group_button()
-        )
+        await message.reply_text("📤 𝐅𝐨𝐫𝐰𝐚𝐫𝐝𝐞𝐝 𝐌𝐞𝐬𝐬𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝", reply_markup=await add_group_button())
         return
 
-    # ===== ABUSE DELETE =====
+    # ABUSE DELETE
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
-            await message.reply_text(
-                "⚠ 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-                reply_markup=await add_group_button()
-            )
+            await message.reply_text("⚠ 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝", reply_markup=await add_group_button())
             return
 
-    # ===== MEDIA SILENT =====
+    # MEDIA SILENT
     if message.media:
         await asyncio.sleep(MEDIA_DELETE_TIME)
         try:
@@ -228,19 +220,13 @@ async def edited(_, message):
 
     if LINK_REGEX.search(text):
         await message.delete()
-        await message.reply_text(
-            "✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-            reply_markup=await add_group_button()
-        )
+        await message.reply_text("✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐋𝐢𝐧𝐤 𝐑𝐞𝐦𝐨𝐯𝐞𝐝", reply_markup=await add_group_button())
         return
 
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
-            await message.reply_text(
-                "✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝",
-                reply_markup=await add_group_button()
-            )
+            await message.reply_text("✏ 𝐄𝐝𝐢𝐭𝐞𝐝 𝐈𝐧𝐚𝐩𝐩𝐫𝐨𝐩𝐫𝐢𝐚𝐭𝐞 𝐋𝐚𝐧𝐠𝐮𝐚𝐠𝐞 𝐑𝐞𝐦𝐨𝐯𝐞𝐝", reply_markup=await add_group_button())
             return
 
 # ================= RUN ================= #
