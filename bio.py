@@ -76,7 +76,7 @@ async def start(_, message):
         "   └ Edited Link Detection\n\n"
         "🗑 𝗠𝗘𝗗𝗜𝗔 𝗖𝗟𝗘𝗔𝗡𝗨𝗣\n"
         "   └ Silent Auto Delete (50s)\n\n"
-        "⚡ Fast • Stable • Professional Grade Protection\n\n"
+        "⚡ Fast • Stable • Professional #Grade Protection\n\n"
         f"📢 Support Channel: {SUPPORT_CHANNEL}\n"
         f"👥 Support Group: {SUPPORT_GROUP}"
     )
