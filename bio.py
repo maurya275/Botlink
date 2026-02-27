@@ -14,14 +14,14 @@ app = Client(
 
 # ================= SUPPORT ================= #
 
-SUPPORT_CHANNEL = "https://t.me/YourChannelUsername"
-SUPPORT_GROUP = "https://t.me/YourGroupUsername"
+SUPPORT_CHANNEL = "https://t.me/BOTADDA"
+SUPPORT_GROUP = "https://t.me/BOTADA"
 
 # ================= SETTINGS ================= #
 
 ABUSE_WORDS = [
     "madarchod","bhosdike","chutiya","mc","bc",
-    "gandu","randi","harami","fuck","shit","bitch"
+    "gandu","randi","harami","fuck","shit","bitch","Land,"chut",Gand"'Bur"
 ]
 
 LINK_REGEX = re.compile(
