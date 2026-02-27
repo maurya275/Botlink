@@ -37,7 +37,7 @@ LINK_REGEX = re.compile(
     re.IGNORECASE
 )
 
-MEDIA_DELETE_TIME = 50  # ✅ 50 seconds
+MEDIA_DELETE_TIME = 50  # 50 seconds
 
 # ============================================ #
 
@@ -57,13 +57,7 @@ async def start_handler(client: Client, message):
 
     text = (
         "**✨ Welcome to BioLink Protector Bot ✨**\n\n"
-        "🛡 Protects groups from:\n"
-        "• Users with links in bio\n"
-        "• Message links\n"
-        "• Edited links\n"
-        "• Forwarded messages\n"
-        "• Abuse words\n"
-        "• Auto media cleanup\n\n"
+        "🛡 Bio link protection + Advanced Group Security\n\n"
         "Use /help to see commands."
     )
 
@@ -74,7 +68,90 @@ async def start_handler(client: Client, message):
     await message.reply_text(text, reply_markup=kb)
 
 # ============================================ #
-# ============ BIO LINK SYSTEM ============== #
+# ============ MESSAGE SECURITY ============== #
+
+@app.on_message(filters.group & ~filters.service)
+async def message_security(client: Client, message):
+
+    if not message.from_user:
+        return
+
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    text = message.text or message.caption or ""
+
+    if await is_whitelisted(chat_id, user_id):
+        return
+
+    # LINK DELETE
+    if LINK_REGEX.search(text):
+        try:
+            await message.delete()
+        except:
+            pass
+
+        bot = await client.get_me()
+        await message.reply_text(
+            "✨🔗 **Link Deleted Successfully!**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("➕ Add Me In Your Group",
+                                      url=f"https://t.me/{bot.username}?startgroup=true")]
+            ])
+        )
+        return
+
+    # FORWARD DELETE
+    if message.forward_date:
+        try:
+            await message.delete()
+        except:
+            pass
+
+        await message.reply_text("📤🚫 **Forward Message Deleted!**")
+        return
+
+    # ABUSE FILTER
+    lowered = text.lower()
+    for word in ABUSE_WORDS:
+        if word in lowered:
+            try:
+                await message.delete()
+            except:
+                pass
+
+            await message.reply_text("⚠️🚫 **Abuse Message Not Allowed Here!**")
+            return
+
+    # MEDIA AUTO DELETE
+    if message.media:
+        await asyncio.sleep(MEDIA_DELETE_TIME)
+        try:
+            await message.delete()
+        except:
+            pass
+
+# ============================================ #
+# ============ EDITED MESSAGE CHECK ========== #
+
+@app.on_edited_message(filters.group)
+async def edited_security(client: Client, message):
+
+    if not message.from_user:
+        return
+
+    chat_id = message.chat.id
+    text = message.text or message.caption or ""
+
+    if LINK_REGEX.search(text):
+        try:
+            await message.delete()
+        except:
+            pass
+
+        await message.reply_text("✏️🚫 **Edited Message Deleted!**")
+
+# ============================================ #
+# ============ BIO LINK WARNING SYSTEM ======= #
 
 @app.on_message(filters.group)
 async def check_bio(client: Client, message):
@@ -100,119 +177,21 @@ async def check_bio(client: Client, message):
 
         mode, limit, penalty = await get_config(chat_id)
 
-        if mode == "warn":
+        count = await increment_warning(chat_id, user_id)
 
-            count = await increment_warning(chat_id, user_id)
+        warn_msg = await message.reply_text(
+            f"🚨 Warning {count}/{limit}\nUser has link in bio."
+        )
 
-            warn_msg = await message.reply_text(
-                f"🚨 Warning {count}/{limit}\nUser has link in bio."
-            )
-
-            if count >= limit:
-                try:
-                    if penalty == "mute":
-                        await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
-                        await warn_msg.edit_text("🔇 User muted (Link in Bio)")
-                    else:
-                        await client.ban_chat_member(chat_id, user_id)
-                        await warn_msg.edit_text("🔨 User banned (Link in Bio)")
-                except:
-                    pass
-        else:
+        if count >= limit:
             try:
-                if mode == "mute":
-                    await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
-                else:
-                    await client.ban_chat_member(chat_id, user_id)
+                # 🔥 ALWAYS MUTE (never ban)
+                await client.restrict_chat_member(chat_id, user_id, ChatPermissions())
+                await warn_msg.edit_text("🔇 User muted (Link in Bio)")
             except:
                 pass
-
     else:
         await reset_warnings(chat_id, user_id)
-
-# ============================================ #
-# ============ MESSAGE SECURITY ============= #
-
-@app.on_message(filters.group & ~filters.service)
-async def message_security(client: Client, message):
-
-    if not message.from_user:
-        return
-
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-    text = message.text or message.caption or ""
-
-    if await is_whitelisted(chat_id, user_id):
-        return
-
-    # LINK DELETE
-    if LINK_REGEX.search(text):
-        try:
-            await message.delete()
-        except:
-            pass
-
-        await message.reply_text(
-            "✨🔗 Link Deleted Successfully!",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("➕ Add Me In Your Group",
-                                      url=f"https://t.me/{(await client.get_me()).username}?startgroup=true")]
-            ])
-        )
-        return
-
-    # FORWARD DELETE
-    if message.forward_date:
-        try:
-            await message.delete()
-        except:
-            pass
-
-        await message.reply_text(
-            "📤🚫 Forward Message Deleted!",
-        )
-        return
-
-    # ABUSE FILTER
-    lowered = text.lower()
-    for word in ABUSE_WORDS:
-        if word in lowered:
-            try:
-                await message.delete()
-            except:
-                pass
-
-            await message.reply_text("⚠️ Abuse Message Not Allowed Here!")
-            return
-
-    # MEDIA AUTO DELETE (50 sec)
-    if message.media:
-        await asyncio.sleep(MEDIA_DELETE_TIME)
-        try:
-            await message.delete()
-        except:
-            pass
-
-# ============================================ #
-# ============ EDITED CHECK ================== #
-
-@app.on_edited_message(filters.group)
-async def edited_security(client: Client, message):
-
-    if not message.from_user:
-        return
-
-    chat_id = message.chat.id
-    text = message.text or message.caption or ""
-
-    if LINK_REGEX.search(text):
-        try:
-            await message.delete()
-        except:
-            pass
-
-        await message.reply_text("✏️ Edited Message Deleted!")
 
 # ============================================ #
 
