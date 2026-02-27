@@ -6,14 +6,19 @@ from pyrogram.types import (
     ChatPermissions
 )
 from pyrogram.enums import ChatMemberStatus
-from config import (
-    API_ID,
-    API_HASH,
-    BOT_TOKEN,
-    BOT_USERNAME,
-    SUPPORT_GROUP,
-    SUPPORT_CHANNEL
-)
+import config
+
+# ================= SAFE CONFIG LOAD =================
+
+API_ID = config.API_ID
+API_HASH = config.API_HASH
+BOT_TOKEN = config.BOT_TOKEN
+
+BOT_USERNAME = getattr(config, "BOT_USERNAME", "YourBotUsername")
+SUPPORT_GROUP = getattr(config, "SUPPORT_GROUP", "https://t.me/yourgroup")
+SUPPORT_CHANNEL = getattr(config, "SUPPORT_CHANNEL", "https://t.me/yourchannel")
+
+# ================= APP =================
 
 app = Client(
     "PremiumModeratorBot",
@@ -31,7 +36,7 @@ free_users = {}
 REAL_LINK_REGEX = r"(https?://|t\.me/|telegram\.me/|www\.)"
 USERNAME_ONLY_REGEX = r"^@\w+$"
 
-ABUSE_WORDS = ["gali1", "gali2", "gali3"]  # apne words add karo
+ABUSE_WORDS = ["gali1", "gali2", "gali3"]
 
 # ================= HELPERS =================
 
@@ -79,7 +84,7 @@ async def delete_with_message(message, reason):
         )
     )
 
-# ================= START DESCRIPTION =================
+# ================= START =================
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
