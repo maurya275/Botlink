@@ -30,23 +30,12 @@ LINK_REGEX = re.compile(
 )
 
 MEDIA_DELETE_TIME = 50
-warnings = {}   # warning storage
+warnings = {}
 
 # ================= HELPERS ================= #
 
 def is_admin(member):
     return member.status in ["administrator", "creator"]
-
-async def start_buttons():
-    bot = await app.get_me()
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
-                              url=f"https://t.me/{bot.username}?startgroup=true")],
-        [
-            InlineKeyboardButton("📢 𝐔𝐩𝐝𝐚𝐭𝐞𝐬", url=SUPPORT_CHANNEL),
-            InlineKeyboardButton("👥 𝐒𝐮𝐩𝐩𝐨𝐫𝐭", url=SUPPORT_GROUP)
-        ]
-    ])
 
 async def add_button():
     bot = await app.get_me()
@@ -54,26 +43,6 @@ async def add_button():
         [InlineKeyboardButton("✨ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✨",
                               url=f"https://t.me/{bot.username}?startgroup=true")]
     ])
-
-# ================= START ================= #
-
-@app.on_message(filters.command("start"))
-async def start(_, message):
-
-    text = (
-        "━━━━━━━━━━━━━━━━━━\n"
-        "✦ 𝐁𝐎𝐓 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐑 ✦\n"
-        "━━━━━━━━━━━━━━━━━━\n\n"
-        "🛡 Elite Group Security System\n\n"
-        "🚫 Auto Link Protection\n"
-        "🔎 Bio Link Scanner (3 Warning + Mute)\n"
-        "🔞 Abuse Filter\n"
-        "📤 Forward Control\n"
-        "⚡ Real-Time Monitoring\n\n"
-        "💎 Premium • Fast • Stable"
-    )
-
-    await message.reply_text(text, reply_markup=await start_buttons())
 
 # ================= MAIN SECURITY ================= #
 
@@ -88,11 +57,20 @@ async def security(_, message):
     text = message.text or message.caption or ""
 
     member = await app.get_chat_member(chat_id, user_id)
-
     if is_admin(member):
         return
 
-    # ===== BIO LINK CHECK WITH WARNING SYSTEM ===== #
+    # ================= MEDIA AUTO DELETE ================= #
+
+    if message.media:
+        await asyncio.sleep(MEDIA_DELETE_TIME)
+        try:
+            await message.delete()
+        except:
+            pass
+        return
+
+    # ================= BIO LINK CHECK (3 WARNING + MUTE) ================= #
 
     try:
         user = await app.get_chat(user_id)
@@ -110,9 +88,9 @@ async def security(_, message):
 
         if count < 3:
             await message.reply_text(
-                f"⚠ 𝐁𝐈𝐎 𝐋𝐈𝐍𝐊 𝐃𝐄𝐓𝐄𝐂𝐓𝐄𝐃\n\n"
-                f"🚫 Please remove link from your bio.\n"
-                f"⚠ Warning: {count}/3\n\n"
+                f"⚠️ 𝐁𝐈𝐎 𝐋𝐈𝐍𝐊 𝐃𝐄𝐓𝐄𝐂𝐓𝐄𝐃\n\n"
+                f"🚫 Please remove link from your bio immediately.\n"
+                f"⚡ 𝐖𝐚𝐫𝐧𝐢𝐧𝐠: {count}/3\n\n"
                 f"🔒 After 3 warnings you will be muted for 30 minutes.",
                 reply_markup=await add_button()
             )
@@ -137,23 +115,68 @@ async def security(_, message):
             )
         return
 
-    # ===== NORMAL LINK CHECK ===== #
+    # ================= LINK MESSAGE DELETE ================= #
 
     if LINK_REGEX.search(text):
         await message.delete()
         await message.reply_text(
-            "🚫 Link Removed\n🔐 Sharing links is not allowed.",
+            "🚫 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐃\n\n"
+            "🔐 Sharing links is not allowed in this group.\n"
+            "⚡ Keep the community clean & safe.",
             reply_markup=await add_button()
         )
         return
 
-    # ===== ABUSE CHECK ===== #
+    # ================= ABUSE CHECK ================= #
 
     for word in ABUSE_WORDS:
         if word in text.lower():
             await message.delete()
             await message.reply_text(
-                "⚠ Inappropriate Language Removed\n💬 Maintain respectful conversation.",
+                "⚠️ 𝐈𝐍𝐀𝐏𝐏𝐑𝐎𝐏𝐑𝐈𝐀𝐓𝐄 𝐋𝐀𝐍𝐆𝐔𝐀𝐆𝐄\n\n"
+                "🚫 Abusive words are strictly prohibited.\n"
+                "💬 Please maintain respectful conversation.",
+                reply_markup=await add_button()
+            )
+            return
+
+# ================= EDIT CHECK ================= #
+
+@app.on_edited_message(filters.group)
+async def edited(_, message):
+
+    if not message.from_user:
+        return
+
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    text = message.text or message.caption or ""
+
+    member = await app.get_chat_member(chat_id, user_id)
+    if is_admin(member):
+        return
+
+    # ===== EDITED LINK ===== #
+
+    if LINK_REGEX.search(text):
+        await message.delete()
+        await message.reply_text(
+            "✏️ 𝐄𝐃𝐈𝐓𝐄𝐃 𝐋𝐈𝐍𝐊 𝐑𝐄𝐌𝐎𝐕𝐄𝐃\n\n"
+            "🚫 Editing message to add links is not allowed.\n"
+            "🔐 Group protection active.",
+            reply_markup=await add_button()
+        )
+        return
+
+    # ===== EDITED ABUSE ===== #
+
+    for word in ABUSE_WORDS:
+        if word in text.lower():
+            await message.delete()
+            await message.reply_text(
+                "✏️ 𝐄𝐃𝐈𝐓𝐄𝐃 𝐀𝐁𝐔𝐒𝐈𝐕𝐄 𝐌𝐄𝐒𝐒𝐀𝐆𝐄\n\n"
+                "⚠️ Abusive language detected after editing.\n"
+                "💬 Respect group guidelines.",
                 reply_markup=await add_button()
             )
             return
@@ -161,5 +184,5 @@ async def security(_, message):
 # ================= RUN ================= #
 
 if __name__ == "__main__":
-    print("Bot Running With 3 Warning + 30 Min Mute System ✅")
+    print("Bot Running Final Fully Stable Version ✅")
     app.run()
